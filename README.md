@@ -99,12 +99,16 @@ mvn compile assembly:single
 
 
 ## yzp modify
-**new　feature **
-1. Tailer many file in one folder  
+**new　feature**
+
+1. Tailer many file in one folder
+
 In directory mode, add param logAllfile. when you want to logging all files in directory , you can to set logAllfile=true
 ```
 java -classpath ./kafka-tailer-2.1-jar-with-dependencies.jar net.johnpage.kafka.KafkaTailer directoryPath=/app/tomcat/dubboApplogs/ producerPropertiesPath=./kafka-producer.properties kafkaTopic=topic01 relinquishLock=true logAllfile=true startTailingFrom=beginning 
 ```
-**bugs **
+**bugs**
+
 1. param startTailingFrom problem
+
 i think there are a bug in this param(startTailingFrom). when i set A value of "beginning" will Start sending lines from the end of the file, and not start from the beginning of the file.
