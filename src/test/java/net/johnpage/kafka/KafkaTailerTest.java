@@ -14,7 +14,7 @@ import java.util.Properties;
 public class KafkaTailerTest {
   private final static Logger LOGGER = LoggerFactory.getLogger(KafkaTailerTest.class);
   MockKafkaProducer mockKafkaProducer = null;
-  @Test
+ // @Test
   public void testMonitorFile() throws IOException {
     LOGGER.info("Starting...");
     Properties producerProperties = new Properties();
@@ -46,7 +46,7 @@ public class KafkaTailerTest {
   public static final String VALUE__LINE_SEVEN="lineSeven";
   public static final String VALUE__LINE_EIGHT="lineEight";
   public static final String VALUE__LINE_NINE="lineNine";
-  @Test
+ // @Test
   public void testMonitorDirectory() throws IOException {
     LOGGER.info("Starting...");
     File directory = new File("temp");
@@ -123,5 +123,108 @@ public class KafkaTailerTest {
     assertEquals(VALUE__LINE_SEVEN,mockKafkaProducer.recordList.get(6).value());
     assertEquals(VALUE__LINE_EIGHT,mockKafkaProducer.recordList.get(7).value());
     assertEquals(VALUE__LINE_NINE,mockKafkaProducer.recordList.get(8).value());
+  }
+  
+  
+  //@Test
+  public void testMonitorDirectoryYzp() throws IOException {
+    LOGGER.info("Starting...");File directory = new File("temp");
+    directory.mkdir();
+    
+    File file1 = new File(directory,"test1.log");
+    file1.createNewFile();
+
+    File file2 = new File(directory,"test2.log");
+    file2.createNewFile();
+    
+    FileWriter fileWriter1 = new FileWriter(file1);
+    fileWriter1.append(VALUE__LINE_ONE).append('\n');
+    fileWriter1.close();
+    try {
+    Thread.sleep(2000);
+  } catch (InterruptedException e) {
+    e.printStackTrace();
+  }
+    
+    Properties producerProperties = new Properties();
+    try {
+      producerProperties.load(new FileInputStream("src/test/resources/KafkaTailer.properties"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    MockKafkaProducer mockKafkaProducer = new MockKafkaProducer(producerProperties);
+    ProducerFactory.setInstance(mockKafkaProducer);
+    final String[] argumentArray = {"directoryPath="+directory.getAbsolutePath(),"producerPropertiesPath=src/test/resources/KafkaTailer.properties","kafkaTopic=test-topic","startTailingFrom=beginning","relinquishLock=true","logAllfile=true"};
+    new Thread() {
+      public void run() {
+        KafkaTailer.main(argumentArray);
+      }
+    }.start();
+    // 修改文件 
+    fileWriter1 = new FileWriter(file1);
+    fileWriter1.append(VALUE__LINE_TWO).append('\n');
+    fileWriter1.close();
+    try {
+      Thread.sleep(5000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    System.out.println("消息数量：=== "+mockKafkaProducer.recordList.size());
+    
+    FileWriter fileWriter2 = new FileWriter(file2);
+    fileWriter2.append(VALUE__LINE_THREE).append('\n');
+    fileWriter2.close();
+    try {
+        Thread.sleep(5000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    System.out.println("消息数量：=== "+mockKafkaProducer.recordList.size());
+    KafkaTailer.stop();
+    // Cleanup
+    file1.delete();
+    file2.delete();
+    directory.delete();
+    
+    System.out.println(mockKafkaProducer.recordList.get(0).value());
+    System.out.println(mockKafkaProducer.recordList.get(1).value());
+    
+    
+    
+  }
+  
+  @Test
+  public void testMonitorDirectoryYzp2() throws IOException {
+    LOGGER.info("Starting...");
+    File directory = new File("D:\\kafkaTailerTest\\");
+
+   
+    Properties producerProperties = new Properties();
+    try {
+      producerProperties.load(new FileInputStream("src/test/resources/KafkaTailer.properties"));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    MockKafkaProducer mockKafkaProducer = new MockKafkaProducer(producerProperties);
+    ProducerFactory.setInstance(mockKafkaProducer);
+    final String[] argumentArray = {"directoryPath="+directory.getAbsolutePath(),"producerPropertiesPath=src/test/resources/KafkaTailer.properties","kafkaTopic=test-topic","relinquishLock=true","logAllfile=true"};
+    new Thread() {
+      public void run() {
+        KafkaTailer.main(argumentArray);
+      }
+    }.start();
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    
+    try {
+        Thread.sleep(10000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    KafkaTailer.stop();
+    System.out.println("消息数量：=== "+mockKafkaProducer.recordList.size());
   }
 }

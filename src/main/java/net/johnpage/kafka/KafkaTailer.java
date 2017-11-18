@@ -16,16 +16,18 @@ public class KafkaTailer {
   public final static String ARG__KAFKA_TOPIC = "kafkaTopic";
   public final static String ARG__START_TAILING_FROM = "startTailingFrom";
   public final static String ARG__RELINQUISH_LOCK = "relinquishLock";
+  public final static String ARG__LOG_AllFILE = "logAllfile"; // yzp: 给目录模式添加一种新的行为,同时监听目录下所有的文件(并且不监听新的文件)
   private static final int MODE__DIRECTORY = 1;
   private static final int MODE__FILE = 2;
   private static String  filePath;
   private static String  directoryPath;
   private static String  producerPropertiesPath;
   private static String  kafkaTopic;
-  private static boolean startTailingFromEnd = true;
+  private static boolean startTailingFromEnd = true;  
   private static boolean relinquishLockBetweenChunks = false;
   private static TailerThreadManager tailerThreadManager;
   private static int mode;
+  private static boolean logAllfile = false;  //yzp
   public static void main(String args[]) {
     LOGGER.debug("Starting... args[]={}",args);
     System.out.println("KafkaTailer: Starting...");
@@ -37,12 +39,25 @@ public class KafkaTailer {
         System.out.println("KafkaTailer: filePath = "+filePath);
         tailerThreadManager.startTailingFile(filePath);
       }else if (mode == MODE__DIRECTORY) {
-        final File lastModifiedFile = getLastModifiedFile(directoryPath);
-        LOGGER.debug("lastModifiedFile={}",lastModifiedFile.getAbsolutePath());
-        tailerThreadManager.startTailingFile(lastModifiedFile.getAbsolutePath());
-        LOGGER.debug("directoryPath={}",directoryPath);
-        DirectoryWatcher directoryWatcher = new DirectoryWatcher(directoryPath,tailerThreadManager);
-        directoryWatcher.startWatching();
+    	if(!logAllfile){
+    		final File lastModifiedFile = getLastModifiedFile(directoryPath);
+            LOGGER.debug("lastModifiedFile={}",lastModifiedFile.getAbsolutePath());
+            tailerThreadManager.startTailingFile(lastModifiedFile.getAbsolutePath());
+            LOGGER.debug("directoryPath={}",directoryPath);
+            DirectoryWatcher directoryWatcher = new DirectoryWatcher(directoryPath,tailerThreadManager);
+            directoryWatcher.startWatching();
+    	}else{
+    		File fl = new File(directoryPath);
+    		File[] files = fl.listFiles(new FileFilter() {
+    		    public boolean accept(File file) {
+    		      return file.isFile();
+    		    }
+    		});
+    		for (File file : files) {
+    			getTailerThreadManager().startTailingFile(file.getAbsolutePath());
+    		}
+    	}
+        
       }
     } catch (FileNotFoundException e) {
       LOGGER.error("FileNotFoundException.",e);
@@ -56,12 +71,17 @@ public class KafkaTailer {
     }
   }
   private static void parseArguments(String args[]) throws InvalidParameterException {
+	
     filePath = getArgumentValue(ARG__FILE_PATH, args);
     directoryPath = getArgumentValue(ARG__DIRECTORY_PATH, args);
     if( directoryPath!=null && !directoryPath.endsWith(File.separator)){
       directoryPath+=File.separator; // Otherwise the Windows startWatching service will not work.
     }
     LOGGER.debug("directoryPath={}",directoryPath);
+    // yzp 新添加的参数
+    String logAllfileTemp = getArgumentValue(ARG__LOG_AllFILE, args);
+	logAllfile = "true".equals(logAllfileTemp);
+	
     producerPropertiesPath = getArgumentValue(ARG__PRODUCER_PROPERTIES_PATH, args);
     kafkaTopic = getArgumentValue(ARG__KAFKA_TOPIC, args);
     if (
@@ -100,6 +120,7 @@ public class KafkaTailer {
   }
   private static TailerThreadManager getTailerThreadManager() throws IOException {
     TailerFactory tailerFactory = new TailerFactory();
+    System.out.println("startTailingFromEnd : " +startTailingFromEnd);
     tailerFactory.setStartTailingFromEnd(startTailingFromEnd);
     tailerFactory.setRelinquishLockBetweenChunks(relinquishLockBetweenChunks);
     tailerFactory.setListener(getConnector());
