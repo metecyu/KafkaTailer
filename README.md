@@ -109,6 +109,5 @@ java -classpath ./kafka-tailer-2.1-jar-with-dependencies.jar net.johnpage.kafka.
 ```
 **bugs**
 
-1. param startTailingFrom problem
-
-i think there are a bug in this param(startTailingFrom). when i set A value of "beginning" will Start sending lines from the end of the file, and not start from the beginning of the file.
+1.A Command-line Argument problem (startTailingFrom) 
+I find a argument problem . when i set A value of "beginning" to startTailingFrom.It Start sending lines from the end of the file, and not start from the beginning of the file.
